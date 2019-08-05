@@ -1,0 +1,31 @@
+= HTTP to riff streaming Adapter
+
+This repository hosts a generic http proxy that can be embedded by riff function
+buildpacks to enhance function-invokers that only support the riff
+link:riff-rpc.proto[streaming protocol] (based on gRPC) and thus get http request/reply "for free".
+
+Any streaming function that accepts a single input stream and produces a single
+output stream can be leveraged by that adapter. The adapter wraps the http
+request into an input stream of size one. After invocation, the output stream
+(which must also be of size one) is turned into the http response.
+
+When an invoker also supports promotion of a simple request/reply function
+to a streaming function (by virtue of `streamOut = streamIn.map(fn)`), this
+allows support of the basic http request/reply interaction automatically.
+
+== Usage and Behavior
+The go executable produced by this repository acts both as a simple http proxy,
+and the parent of the actual function invoker process (buildpacks having only
+entry point).
+
+Let's assume you want to add http capability to a `node` function invoker (that then
+doesn't need to worry about http support, but only focus on gRPC streaming support).
+Also assume that the invoker is usually invoked _via_ `node server.js` and that
+gRPC support is listening on port 8081 (the default).
+
+Simply replace that entry point with `streaming-http-adapter node server.js` and the
+adapter will fork the `node` process, coupling its lifecyle to its own.
+
+The best way to use this executable is to leverage it as an optional buildpack in
+a builder definition. See http://github.com/projectriff/streaming-http-adapter-buildpack
+to that end.
