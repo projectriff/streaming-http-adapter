@@ -40,12 +40,12 @@ func main() {
 	command.Stderr = os.Stderr
 	command.Env = os.Environ()
 
-	if err = command.Start() ; err != nil {
+	if err := command.Start() ; err != nil {
 		panic(err)
 	}
 
 	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt)
+	signal.Notify(stop, os.Interrupt, os.Kill)
 	<-stop
 
 	command.Wait()

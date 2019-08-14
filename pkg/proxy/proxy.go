@@ -12,20 +12,14 @@ import (
 )
 
 type proxy struct {
-	server     *http.Server
-	riffClient rpc.RiffClient
+	server      *http.Server
+	riffClient  rpc.RiffClient
+	grpcAddress string
 }
 
 func NewProxy(grpcAddress string, httpAddress string) (*proxy, error) {
 
-	p := proxy{}
-
-	timeout, _ := context.WithTimeout(context.Background(), 1*time.Minute)
-	conn, err := grpc.DialContext(timeout, grpcAddress, grpc.WithInsecure(), grpc.WithBlock())
-	if err != nil {
-		return nil, err
-	}
-	p.riffClient = rpc.NewRiffClient(conn)
+	p := proxy{grpcAddress: grpcAddress}
 
 	m := http.NewServeMux()
 	m.HandleFunc("/", p.invokeGrpc)
@@ -39,7 +33,15 @@ func NewProxy(grpcAddress string, httpAddress string) (*proxy, error) {
 }
 
 func (p *proxy) Run() error {
-	err := p.server.ListenAndServe()
+
+	timeout, _ := context.WithTimeout(context.Background(), 1*time.Minute)
+	conn, err := grpc.DialContext(timeout, p.grpcAddress, grpc.WithInsecure(), grpc.WithBlock())
+	if err != nil {
+		return err
+	}
+	p.riffClient = rpc.NewRiffClient(conn)
+
+	err = p.server.ListenAndServe()
 	if err != nil && err != http.ErrServerClosed {
 		return err
 	} else {
