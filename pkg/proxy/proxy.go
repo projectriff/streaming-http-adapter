@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"time"
 )
 
 type proxy struct {
@@ -19,7 +20,8 @@ func NewProxy(grpcAddress string, httpAddress string) (*proxy, error) {
 
 	p := proxy{}
 
-	conn, err := grpc.Dial(grpcAddress, grpc.WithInsecure())
+	timeout, _ := context.WithTimeout(context.Background(), 1*time.Minute)
+	conn, err := grpc.DialContext(timeout, grpcAddress, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
 		return nil, err
 	}

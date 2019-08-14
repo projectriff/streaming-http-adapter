@@ -1,4 +1,5 @@
-streaming-http-adapter
-streaming-http-adapter.exe
-streaming-http-adapter-linux
-.idea/
+/streaming-http-adapter
+/streaming-http-adapter.exe
+/streaming-http-adapter-linux-amd64.tgz
+/.idea/
+.DS_Store

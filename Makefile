@@ -15,9 +15,13 @@ pkg/rpc/riff-rpc.pb.go: riff-rpc.proto
 	protoc -I . riff-rpc.proto --go_out=plugins=grpc:pkg/rpc
 
 .PHONY: release
-release: $(GO_SOURCES) ## Build the executable as a static linux executable
-	CGO_ENABLED=0 GOOS=linux go build \
-		-o $(OUTPUT)-linux main.go
+release: $(OUTPUT)-linux-amd64.tgz ## Build the executable as a static linux executable
+
+$(OUTPUT)-linux-amd64.tgz: $(GO_SOURCES)
+	mkdir temp \
+	&& CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o temp/$(OUTPUT) main.go \
+	&& tar -czf $(OUTPUT)-linux-amd64.tgz -C temp/ $(OUTPUT) \
+	&& rm -fR temp
 
 .PHONY: clean
 clean: ## Clean generated files
