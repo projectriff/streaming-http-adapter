@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"syscall"
 )
 
 func main() {
@@ -40,23 +41,35 @@ func main() {
 	command.Stderr = os.Stderr
 	command.Env = os.Environ()
 
-	if err := command.Start() ; err != nil {
+	if err := command.Start(); err != nil {
 		panic(err)
 	}
 
+
+	done := make(chan struct{}, 2)
+
 	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt, os.Kill)
-	<-stop
+	signal.Notify(stop, syscall.SIGINT, syscall.SIGKILL, syscall.SIGTERM)
+	sig := <-stop
+	_=sig
 
-	command.Wait()
+	if err := command.Process.Signal(sig) ; err != nil {
+		panic(err)
+	}
 
-	proxyShutdown := make(chan struct{})
+
 	go func() {
-		if err := proxy.Shutdown(context.Background()) ; err != nil {
-			log.Fatalf("error shuting down proxy server %v", err)
-		}
-		close(proxyShutdown)
+		_ = command.Wait()
+		done <- struct{}{}
 	}()
 
-	<-proxyShutdown
+	go func() {
+		if err := proxy.Shutdown(context.Background()); err != nil {
+			log.Fatalf("error shuting down proxy server %v", err)
+		}
+		done <- struct{}{}
+	}()
+
+	<-done
+	<-done
 }
