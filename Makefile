@@ -15,17 +15,18 @@ pkg/rpc/riff-rpc.pb.go: riff-rpc.proto
 	protoc -I . riff-rpc.proto --go_out=plugins=grpc:pkg/rpc
 
 .PHONY: release
-release: $(OUTPUT)-linux-amd64.tgz ## Build the executable as a static linux executable
+release: streaming-http-adapter-linux-amd64.tgz ## Build the executable as a static linux executable
 
-$(OUTPUT)-linux-amd64.tgz: $(GO_SOURCES)
+streaming-http-adapter-linux-amd64.tgz: $(GO_SOURCES)
 	mkdir temp \
-	&& CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o temp/$(OUTPUT) main.go \
-	&& tar -czf $(OUTPUT)-linux-amd64.tgz -C temp/ $(OUTPUT) \
+	&& CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o temp/streaming-http-adapter main.go \
+	&& tar -czf streaming-http-adapter-linux-amd64.tgz -C temp/ streaming-http-adapter \
 	&& rm -fR temp
 
 .PHONY: clean
 clean: ## Clean generated files
 	rm -f $(OUTPUT)
+	rm -f streaming-http-adapter-linux-amd64.tgz
 
 # Absolutely awesome: http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 .PHONY: help
