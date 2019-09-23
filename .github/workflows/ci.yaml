@@ -1,25 +1,20 @@
 name: Continuous Integration
-on: push
+on: [push, pull_request]
 jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
     steps:
+    - name: Check out code
+      uses: actions/checkout@v1
     - name: Set up Golang
       uses: actions/setup-go@v1
       with:
         go-version: '1.13'
-    # TODO remove after https://github.com/actions/setup-go/issues/14
-    - name: Add GOPATH/bin to PATH
-      shell: bash
-      run: |
-        echo "##[set-env name=GOPATH;]$(go env GOPATH)"
-        echo "##[add-path]$(go env GOPATH)/bin"
-    - name: Check out code
-      uses: actions/checkout@v1
     - name: Build Release
       run: make release
-    - name: Deploy
-      run: ${GITHUB_WORKSPACE}/.github/workflows/release.sh
+    - name: Publish
+      run: .github/workflows/release.sh
+      if: github.event_name == 'push' && github.ref == 'refs/heads/master'
       env:
-        GCLOUD_CLIENT_SECRET: ${{ secrets.GCloudAuth }}
+        GCLOUD_CLIENT_SECRET: ${{ secrets.GCLOUD_CLIENT_SECRET }}
