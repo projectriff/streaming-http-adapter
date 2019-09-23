@@ -19,10 +19,6 @@ jobs:
       uses: actions/checkout@v1
     - name: Build Release
       run: make release
-    - name: Set up GCloud
-      uses: actions/gcloud/auth@master
-      env:
-        GCLOUD_AUTH: ${{ secrets.GCloudAuth }}
     - name: Deploy
       run: ${GITHUB_WORKSPACE}/.github/workflows/release.sh
       env:
