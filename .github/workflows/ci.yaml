@@ -1,0 +1,29 @@
+name: Continuous Integration
+on: push
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set up Golang
+      uses: actions/setup-go@v1
+      with:
+        go-version: '1.13'
+    # TODO remove after https://github.com/actions/setup-go/issues/14
+    - name: Add GOPATH/bin to PATH
+      shell: bash
+      run: |
+        echo "##[set-env name=GOPATH;]$(go env GOPATH)"
+        echo "##[add-path]$(go env GOPATH)/bin"
+    - name: Check out code
+      uses: actions/checkout@v1
+    - name: Build Release
+      run: make release
+    - name: Set up GCloud
+      uses: actions/gcloud/auth@master
+      env:
+        GCLOUD_AUTH: ${{ secrets.GCloudAuth }}
+    - name: Deploy
+      run: ${GITHUB_WORKSPACE}/.github/workflows/release.sh
+      env:
+        GCLOUD_CLIENT_SECRET: ${{ secrets.GCloudAuth }}
