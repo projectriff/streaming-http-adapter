@@ -46,23 +46,12 @@ func main() {
 	// It should not care about the PORT variable
 	command.Env = os.Environ()
 
-	if err := command.Start(); err != nil {
-		panic(err)
-	}
-
 	done := make(chan struct{}, 2)
 
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, syscall.SIGINT, syscall.SIGKILL, syscall.SIGTERM)
-	sig := <-stop
-	_ = sig
-
-	if err := command.Process.Signal(sig); err != nil {
-		panic(err)
-	}
-
 	go func() {
-		_ = command.Wait()
+		if err := command.Run(); err != nil {
+			fmt.Printf("Child process exited with %v\n", err)
+		}
 		done <- struct{}{}
 	}()
 
@@ -73,6 +62,20 @@ func main() {
 		done <- struct{}{}
 	}()
 
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGINT, syscall.SIGKILL, syscall.SIGTERM)
+
+	go func() {
+		// Wait for explicit termination of this adapter
+		sig := <-stop
+
+		// Forward the caught signal to our child
+		if err := command.Process.Signal(sig); err != nil {
+			panic(err)
+		}
+	}()
+
+	// Wait for both the child and the http server
 	<-done
 	<-done
 }
