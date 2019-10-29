@@ -53,9 +53,6 @@ func main() {
 			fmt.Printf("Child process exited with %v\n", err)
 		}
 		done <- struct{}{}
-	}()
-
-	go func() {
 		if err := proxy.Shutdown(context.Background()); err != nil {
 			log.Fatalf("error shuting down proxy server %v", err)
 		}
