@@ -1,7 +1,7 @@
 = HTTP to riff streaming Adapter
 
 This repository hosts a generic http proxy that can be embedded by riff function
-buildpacks to enhance function-invokers that only support the riff
+buildpacks to enhance function invokers that only support the riff
 link:riff-rpc.proto[streaming protocol] (based on gRPC) and thus get http request/reply "for free".
 
 Any streaming function that accepts a single input stream and produces a single
@@ -24,7 +24,7 @@ Also assume that the invoker is usually invoked _via_ `node server.js` and that
 gRPC support is listening on port 8081 (the default).
 
 Simply replace that entry point with `streaming-http-adapter node server.js` and the
-adapter will fork the `node` process, coupling its lifecyle to its own.
+adapter will fork the `node` process, coupling its lifecycle to its own.
 
 The best way to use this executable is to leverage it as an optional buildpack in
 a builder definition. See http://github.com/projectriff/streaming-http-adapter-buildpack
