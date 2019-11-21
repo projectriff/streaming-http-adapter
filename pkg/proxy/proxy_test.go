@@ -44,15 +44,15 @@ func Test_invokeGrpc_input_dataFrame(t *testing.T) {
 }
 
 func Test_invokeGrpc_output(t *testing.T) {
-	riffClient, _ := mockRiffClientWithResponse("some response")
+	riffClient, _ := mockRiffClientWithResponse("<data>some response</data>", "application/xml")
 	p := &proxy{riffClient: riffClient}
 
 	request, _ := http.NewRequest("POST", "/", strings.NewReader(""))
 	responseRecorder := httptest.NewRecorder()
 	p.invokeGrpc(responseRecorder, request)
 
-	assert.Equal(t, "some response", responseRecorder.Body.String())
-	assert.Equal(t, "text/plain", responseRecorder.Header().Get("Content-Type"))
+	assert.Equal(t, "<data>some response</data>", responseRecorder.Body.String())
+	assert.Equal(t, "application/xml", responseRecorder.Header().Get("Content-Type"))
 }
 
 func Test_invokeGrpc_wiring(t *testing.T) {
@@ -78,26 +78,26 @@ func inputSignals(calls []mock.Call) []*rpc.InputSignal {
 }
 
 func mockRiffClient() (*mocks.RiffClient, *mocks.Riff_InvokeClient) {
-	return mockRiffClientWithResponse("")
+	return mockRiffClientWithResponse("", "")
 }
 
-func mockRiffClientWithResponse(outputBody string) (*mocks.RiffClient, *mocks.Riff_InvokeClient) {
+func mockRiffClientWithResponse(outputBody string, contentType string) (*mocks.RiffClient, *mocks.Riff_InvokeClient) {
 	riffClient := &mocks.RiffClient{}
 	invokeClient := &mocks.Riff_InvokeClient{}
 	riffClient.On("Invoke", context.Background()).Return(invokeClient, nil)
 	invokeClient.On("Send", mock.Anything).Return(nil)
 	invokeClient.On("CloseSend").Return(nil)
-	invokeClient.On("Recv").Return(outputSignal(outputBody), nil).Once()
+	invokeClient.On("Recv").Return(outputSignal(outputBody, contentType), nil).Once()
 	invokeClient.On("Recv").Return(nil, io.EOF)
 	return riffClient, invokeClient
 }
 
-func outputSignal(outputBody string) *rpc.OutputSignal {
+func outputSignal(outputBody string, contentType string) *rpc.OutputSignal {
 	return &rpc.OutputSignal{
 		Frame: &rpc.OutputSignal_Data{
 			Data: &rpc.OutputFrame{
 				Payload:     []byte(outputBody),
-				ContentType: "text/plain",
+				ContentType: contentType,
 			},
 		},
 	}
