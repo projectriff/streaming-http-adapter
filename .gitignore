@@ -3,4 +3,3 @@
 /streaming-http-adapter-linux-amd64.tgz
 /.idea/
 .DS_Store
-/pkg/proxy/mocks

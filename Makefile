@@ -29,7 +29,7 @@ clean: ## Clean generated files
 	rm -f streaming-http-adapter-linux-amd64.tgz
 
 .PHONY: test
-test: gen-mocks ## Run the tests
+test: ## Run the tests
 	go test ./...
 
 # Use go get in GOPATH mode to install/update mockery. This avoids polluting go.mod/go.sum.
