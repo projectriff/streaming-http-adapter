@@ -17,28 +17,28 @@ func Test_invokeGrpc_input_startFrame(t *testing.T) {
 	riffClient, invokeClient := mockRiffClient()
 	p := &proxy{riffClient: riffClient}
 
-	request, _ := http.NewRequest("POST", "/invoker-url", strings.NewReader(""))
-	request.Header.Add("accept", "text/plain+accept")
+	request, _ := http.NewRequest("POST", "/", strings.NewReader(""))
+	request.Header.Add("accept", "text/plain")
 	p.invokeGrpc(httptest.NewRecorder(), request)
 
 	inputSignals := inputSignals(invokeClient.Calls)
 	startFrame := inputSignals[0].GetStart()
-	assert.Equal(t, []string{"text/plain+accept"}, startFrame.ExpectedContentTypes)
+	assert.Equal(t, []string{"text/plain"}, startFrame.ExpectedContentTypes)
 }
 
 func Test_invokeGrpc_input_dataFrame(t *testing.T) {
 	riffClient, invokeClient := mockRiffClient()
 	p := &proxy{riffClient: riffClient}
 
-	request, _ := http.NewRequest("POST", "/invoker-url", strings.NewReader("some body"))
-	request.Header.Add("content-type", "text/plain+content-type")
+	request, _ := http.NewRequest("POST", "/", strings.NewReader("some body"))
+	request.Header.Add("content-type", "text/plain")
 	request.Header.Add("x-custom-header", "header-value")
 	p.invokeGrpc(httptest.NewRecorder(), request)
 
 	inputSignals := inputSignals(invokeClient.Calls)
 	dataFrame := inputSignals[1].GetData()
 	assert.Equal(t, "some body", string(dataFrame.Payload))
-	assert.Equal(t, "text/plain+content-type", dataFrame.ContentType)
+	assert.Equal(t, "text/plain", dataFrame.ContentType)
 	assert.Contains(t, dataFrame.Headers, "X-Custom-Header")
 	assert.Equal(t, dataFrame.Headers["X-Custom-Header"], "header-value")
 }
@@ -47,19 +47,19 @@ func Test_invokeGrpc_output(t *testing.T) {
 	riffClient, _ := mockRiffClientWithResponse("some response")
 	p := &proxy{riffClient: riffClient}
 
-	request, _ := http.NewRequest("POST", "/invoker-url", strings.NewReader(""))
+	request, _ := http.NewRequest("POST", "/", strings.NewReader(""))
 	responseRecorder := httptest.NewRecorder()
 	p.invokeGrpc(responseRecorder, request)
 
 	assert.Equal(t, "some response", responseRecorder.Body.String())
-	assert.Equal(t, "text/plain+response", responseRecorder.Header().Get("Content-Type"))
+	assert.Equal(t, "text/plain", responseRecorder.Header().Get("Content-Type"))
 }
 
 func Test_invokeGrpc_wiring(t *testing.T) {
 	riffClient, invokeClient := mockRiffClient()
 	p := &proxy{riffClient: riffClient}
 
-	request, _ := http.NewRequest("POST", "/invoker-url", strings.NewReader("some body"))
+	request, _ := http.NewRequest("POST", "/", strings.NewReader("some body"))
 	p.invokeGrpc(httptest.NewRecorder(), request)
 
 	riffClient.AssertExpectations(t)
@@ -97,7 +97,7 @@ func outputSignal(outputBody string) *rpc.OutputSignal {
 		Frame: &rpc.OutputSignal_Data{
 			Data: &rpc.OutputFrame{
 				Payload:     []byte(outputBody),
-				ContentType: "text/plain+response",
+				ContentType: "text/plain",
 			},
 		},
 	}
