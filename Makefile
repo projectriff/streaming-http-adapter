@@ -6,7 +6,10 @@ else
 endif
 
 .PHONY: build
-build: test $(OUTPUT) ## Build the executable for current architecture (local dev)
+build: $(OUTPUT) ## Build the executable for current architecture (local dev)
+
+.PHONY: all
+all: build test
 
 $(OUTPUT): $(GO_SOURCES)
 	go build -o $(OUTPUT) main.go
