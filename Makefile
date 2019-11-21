@@ -6,7 +6,7 @@ else
 endif
 
 .PHONY: build
-build: $(OUTPUT) ## Build the executable for current architecture (local dev)
+build: test $(OUTPUT) ## Build the executable for current architecture (local dev)
 
 $(OUTPUT): $(GO_SOURCES)
 	go build -o $(OUTPUT) main.go
@@ -15,7 +15,7 @@ pkg/rpc/riff-rpc.pb.go: riff-rpc.proto
 	protoc -I . riff-rpc.proto --go_out=plugins=grpc:pkg/rpc
 
 .PHONY: release
-release: streaming-http-adapter-linux-amd64.tgz ## Build the executable as a static linux executable
+release: test streaming-http-adapter-linux-amd64.tgz ## Build the executable as a static linux executable
 
 streaming-http-adapter-linux-amd64.tgz: $(GO_SOURCES)
 	mkdir temp \
@@ -28,6 +28,9 @@ clean: ## Clean generated files
 	rm -f $(OUTPUT)
 	rm -f streaming-http-adapter-linux-amd64.tgz
 
+.PHONY: test
+test: gen-mocks ## Run the tests
+	go test ./...
 
 # Use go get in GOPATH mode to install/update mockery. This avoids polluting go.mod/go.sum.
 .PHONY: check-mockery
