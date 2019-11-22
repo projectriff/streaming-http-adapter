@@ -38,12 +38,19 @@ test: ## Run the tests
 # Use go get in GOPATH mode to install/update mockery. This avoids polluting go.mod/go.sum.
 .PHONY: mockery
 mockery:
-	@which mockery || (echo mockery not found: issue \"GO111MODULE=off go get -u  github.com/vektra/mockery/.../\" && false)
+ifeq (, $(shell which mockery))
+	# avoid go.* mutations from go get
+	( cd .. && GO111MODULE=on go get github.com/vektra/mockery/.../)
+MOCKERY=$(GOPATH)/bin/mockery
+else
+MOCKERY=$(shell which mockery)
+endif
+
 
 .PHONY: gen-mocks
 gen-mocks: mockery clean-mocks ## Generate mocks
-	mockery -output ./pkg/proxy/mocks -dir ./pkg/rpc -name RiffClient
-	mockery -output ./pkg/proxy/mocks -dir ./pkg/rpc -name Riff_InvokeClient
+	$(MOCKERY) -output ./pkg/proxy/mocks -dir ./pkg/rpc -name RiffClient
+	$(MOCKERY) -output ./pkg/proxy/mocks -dir ./pkg/rpc -name Riff_InvokeClient
 
 .PHONY: clean-mocks
 clean-mocks: ## Delete mocks
@@ -51,8 +58,8 @@ clean-mocks: ## Delete mocks
 
 .PHONY: verify-mocks
 verify-mocks: mockery ## Verify that mocks are up to date
-	mockery -print -dir ./pkg/rpc -name RiffClient | diff ./pkg/proxy/mocks/RiffClient.go  -
-	mockery -print -dir ./pkg/rpc -name Riff_InvokeClient | diff ./pkg/proxy/mocks/Riff_InvokeClient.go  -
+	$(MOCKERY) -print -dir ./pkg/rpc -name RiffClient | diff ./pkg/proxy/mocks/RiffClient.go  -
+	$(MOCKERY) -print -dir ./pkg/rpc -name Riff_InvokeClient | diff ./pkg/proxy/mocks/Riff_InvokeClient.go  -
 	
 # Absolutely awesome: http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 .PHONY: help
