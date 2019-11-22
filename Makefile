@@ -5,6 +5,12 @@ else
 	OUTPUT=streaming-http-adapter
 endif
 
+ifeq (,$(shell go env GOBIN))
+GOBIN=$(shell go env GOPATH)/bin
+else
+GOBIN=$(shell go env GOBIN)
+endif
+
 .PHONY: build
 build: $(OUTPUT) ## Build the executable for current architecture (local dev)
 
@@ -41,7 +47,7 @@ mockery:
 ifeq (, $(shell which mockery))
 	# avoid go.* mutations from go get
 	( cd .. && GO111MODULE=on go get github.com/vektra/mockery/.../)
-MOCKERY=$(GOPATH)/bin/mockery
+MOCKERY=$(GOBIN)/mockery
 else
 MOCKERY=$(shell which mockery)
 endif
