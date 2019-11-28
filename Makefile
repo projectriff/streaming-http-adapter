@@ -11,11 +11,11 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
-.PHONY: build
-build: $(OUTPUT) ## Build the executable for current architecture (local dev)
-
 .PHONY: all
 all: build verify-mocks test
+
+.PHONY: build
+build: $(OUTPUT) ## Build the executable for current architecture (local dev)
 
 $(OUTPUT): $(GO_SOURCES)
 	go build -o $(OUTPUT) main.go
