@@ -1,4 +1,4 @@
-GO_SOURCES = $(shell find . -type f -name '*.go')
+GO_SOURCES = $(shell find . -type f -name '*.go' ! -path '**/mocks/*')
 
 MOCKS_DIR = pkg/proxy/mocks
 MOCKS = ${MOCKS_DIR}/RiffClient.go ${MOCKS_DIR}/Riff_InvokeClient.go
@@ -15,7 +15,7 @@ GOBIN=$(shell go env GOBIN)
 endif
 
 .PHONY: all
-all: build verify-mocks test
+all: build gen-mocks test
 
 .PHONY: build
 build: $(OUTPUT) ## Build the executable for current architecture (local dev)
