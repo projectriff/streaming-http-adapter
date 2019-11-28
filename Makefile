@@ -1,4 +1,7 @@
 GO_SOURCES = $(shell find . -type f -name '*.go')
+
+MOCKS_DIR = pkg/proxy/mocks
+MOCKS = ${MOCKS_DIR}/RiffClient.go ${MOCKS_DIR}/Riff_InvokeClient.go
 ifeq ($(OS),Windows_NT)
 	OUTPUT=streaming-http-adapter.exe
 else
@@ -52,11 +55,11 @@ else
 MOCKERY=$(shell which mockery)
 endif
 
+${MOCKS_DIR}/%.go: mockery pkg/rpc/riff-rpc.pb.go
+	$(MOCKERY) -output ./pkg/proxy/mocks -dir ./pkg/rpc -name $(@:${MOCKS_DIR}/%.go=%)
 
 .PHONY: gen-mocks
-gen-mocks: mockery clean-mocks ## Generate mocks
-	$(MOCKERY) -output ./pkg/proxy/mocks -dir ./pkg/rpc -name RiffClient
-	$(MOCKERY) -output ./pkg/proxy/mocks -dir ./pkg/rpc -name Riff_InvokeClient
+gen-mocks: $(MOCKS)
 
 .PHONY: clean-mocks
 clean-mocks: ## Delete mocks
