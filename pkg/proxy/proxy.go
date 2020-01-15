@@ -93,6 +93,8 @@ func (p *proxy) invokeGrpc(writer http.ResponseWriter, request *http.Request) {
 		Frame: &rpc.InputSignal_Start{
 			Start: &rpc.StartFrame{
 				ExpectedContentTypes: []string{accept},
+				InputNames:           []string{"in"},
+				OutputNames:          []string{"out"},
 			},
 		},
 	}
