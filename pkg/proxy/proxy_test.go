@@ -24,6 +24,8 @@ func Test_invokeGrpc_input_startFrame(t *testing.T) {
 	inputSignals := inputSignals(invokeClient.Calls)
 	startFrame := inputSignals[0].GetStart()
 	assert.Equal(t, []string{"text/plain"}, startFrame.ExpectedContentTypes)
+	assert.Equal(t, []string{"in"}, startFrame.InputNames)
+	assert.Equal(t, []string{"out"}, startFrame.OutputNames)
 }
 
 func Test_invokeGrpc_input_dataFrame(t *testing.T) {
