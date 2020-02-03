@@ -2,10 +2,13 @@ package proxy
 
 import (
 	"context"
+	"fmt"
 	"github.com/projectriff/streaming-http-adapter/pkg/proxy/mocks"
 	"github.com/projectriff/streaming-http-adapter/pkg/rpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -68,6 +71,38 @@ func Test_invokeGrpc_wiring(t *testing.T) {
 	invokeClient.AssertExpectations(t)
 }
 
+func Test_not_acceptable_media_type(t *testing.T) {
+	accept := "text/zglorbf"
+	errorMsg := fmt.Sprintf("Invoker: Not Acceptable: unrecognized output #0's content-type %s", accept)
+	riffClient, _ := mockRiffClientWithError(codes.InvalidArgument, errorMsg)
+	p := &proxy{riffClient: riffClient}
+	request, _ := http.NewRequest("POST", "/", strings.NewReader("some body"))
+	request.Header.Set("Accept", accept)
+
+	responseRecorder := httptest.NewRecorder()
+	p.invokeGrpc(responseRecorder, request)
+
+	assert.Equal(t, http.StatusNotAcceptable, responseRecorder.Code)
+	assert.Equal(t, "text/plain", responseRecorder.Header().Get("Content-Type"))
+	assert.Equal(t, errorMsg+"\n", responseRecorder.Body.String())
+}
+
+func Test_unsupported_content_type(t *testing.T) {
+	contentType := "text/zglorbf"
+	errorMsg := fmt.Sprintf("Invoker: Unsupported Media Type: unsupported input #0's content-type %s", contentType)
+	riffClient, _ := mockRiffClientWithError(codes.InvalidArgument, errorMsg)
+	p := &proxy{riffClient: riffClient}
+	request, _ := http.NewRequest("POST", "/", strings.NewReader("some body"))
+	request.Header.Set("Content-Type", contentType)
+
+	responseRecorder := httptest.NewRecorder()
+	p.invokeGrpc(responseRecorder, request)
+
+	assert.Equal(t, http.StatusUnsupportedMediaType, responseRecorder.Code)
+	assert.Equal(t, "text/plain", responseRecorder.Header().Get("Content-Type"))
+	assert.Equal(t, errorMsg+"\n", responseRecorder.Body.String())
+}
+
 func inputSignals(calls []mock.Call) []*rpc.InputSignal {
 	var inputSignals []*rpc.InputSignal
 	for _, call := range calls {
@@ -92,6 +127,23 @@ func mockRiffClientWithResponse(outputBody string, contentType string) (*mocks.R
 	invokeClient.On("Recv").Return(outputSignal(outputBody, contentType), nil).Once()
 	invokeClient.On("Recv").Return(nil, io.EOF)
 	return riffClient, invokeClient
+}
+
+func mockRiffClientWithError(code codes.Code, msg string) (*mocks.RiffClient, *mocks.Riff_InvokeClient) {
+	riffClient := &mocks.RiffClient{}
+	invokeClient := &mocks.Riff_InvokeClient{}
+	riffClient.On("Invoke", context.Background()).Return(invokeClient, nil)
+	invokeClient.On("Send", mock.MatchedBy(isStartSignal)).Return(nil)
+	invokeClient.On("Send", mock.MatchedBy(isDataSignal)).Return(status.Error(code, msg))
+	return riffClient, invokeClient
+}
+
+func isDataSignal(inputSignal *rpc.InputSignal) bool {
+	return inputSignal.GetData() != nil
+}
+
+func isStartSignal(inputSignal *rpc.InputSignal) bool {
+	return inputSignal.GetStart() != nil
 }
 
 func outputSignal(outputBody string, contentType string) *rpc.OutputSignal {
