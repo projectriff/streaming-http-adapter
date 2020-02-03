@@ -21,9 +21,12 @@ import (
 	"errors"
 	"github.com/projectriff/streaming-http-adapter/pkg/rpc"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -151,7 +154,28 @@ func (p *proxy) invokeGrpc(writer http.ResponseWriter, request *http.Request) {
 }
 
 func writeError(writer http.ResponseWriter, err error) {
-	writer.WriteHeader(http.StatusInternalServerError)
-	writer.Header().Set("content-type", "text/plain")
-	_, _ = writer.Write([]byte(err.Error()))
+	if grpcError, ok := status.FromError(err); ok {
+		writeHeaderFromGrpcError(grpcError, writer)
+		writer.Header().Set("content-type", "text/plain")
+		_, _ = writer.Write([]byte(grpcError.Message()))
+		_, _ = writer.Write([]byte("\n"))
+	} else {
+		writer.WriteHeader(http.StatusInternalServerError)
+		writer.Header().Set("content-type", "text/plain")
+		_, _ = writer.Write([]byte(err.Error()))
+		_, _ = writer.Write([]byte("\n"))
+	}
+
+}
+
+func writeHeaderFromGrpcError(grpcError *status.Status, writer http.ResponseWriter) {
+	if grpcError.Code() != codes.InvalidArgument {
+		writer.WriteHeader(http.StatusInternalServerError)
+	} else if strings.HasPrefix(grpcError.Message(), "Invoker: Unsupported Media Type") {
+		writer.WriteHeader(http.StatusUnsupportedMediaType)
+	} else if strings.HasPrefix(grpcError.Message(), "Invoker: Not Acceptable") {
+		writer.WriteHeader(http.StatusNotAcceptable)
+	} else {
+		writer.WriteHeader(http.StatusInternalServerError)
+	}
 }
