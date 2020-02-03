@@ -19,7 +19,7 @@ all: build test
 build: $(OUTPUT) ## Build the executable for current architecture (local dev)
 
 $(OUTPUT): $(GO_SOURCES)
-	go build -o $(OUTPUT) main.go
+	go build -o $(OUTPUT) -gcflags="all=-N -l" main.go
 
 pkg/rpc/riff-rpc.pb.go: riff-rpc.proto
 	protoc -I . riff-rpc.proto --go_out=plugins=grpc:pkg/rpc
