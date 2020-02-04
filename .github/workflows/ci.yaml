@@ -1,5 +1,12 @@
-name: Continuous Integration
-on: [push, pull_request]
+name: CI
+
+on:
+  push:
+    branches:
+    - '**'
+    - '!dependabot/**'
+  pull_request: {}
+
 jobs:
   build:
     name: Build
@@ -15,6 +22,11 @@ jobs:
       run: make release
     - name: Publish
       run: .github/workflows/release.sh
-      if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+      if: |
+        github.event_name == 'push' && (
+          github.ref == 'refs/heads/master' || (
+            startsWith(github.ref, 'refs/heads/v') && endsWith(github.ref, 'x')
+          )
+        )
       env:
         GCLOUD_CLIENT_SECRET: ${{ secrets.GCLOUD_CLIENT_SECRET }}
