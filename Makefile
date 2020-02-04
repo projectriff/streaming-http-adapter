@@ -42,14 +42,14 @@ clean: ## Clean generated files
 test: ## Run the tests
 	go test ./...
 
-pkg/proxy/mocks/RiffClient.go: mockery pkg/rpc/riff-rpc.pb.go
+pkg/proxy/mocks/RiffClient.go: pkg/rpc/riff-rpc.pb.go
 	$(MOCKERY) -output ./pkg/proxy/mocks -dir ./pkg/rpc -name RiffClient
 
-pkg/proxy/mocks/Riff_InvokeClient.go: mockery pkg/rpc/riff-rpc.pb.go
+pkg/proxy/mocks/Riff_InvokeClient.go: pkg/rpc/riff-rpc.pb.go
 	$(MOCKERY) -output ./pkg/proxy/mocks -dir ./pkg/rpc -name Riff_InvokeClient
 
 .PHONY: gen-mocks
-gen-mocks: pkg/proxy/mocks/RiffClient.go pkg/proxy/mocks/Riff_InvokeClient.go
+gen-mocks: mockery pkg/proxy/mocks/RiffClient.go pkg/proxy/mocks/Riff_InvokeClient.go
 
 .PHONY: clean-mocks
 clean-mocks: ## Delete mocks
