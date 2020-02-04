@@ -12,5 +12,5 @@ readonly git_branch=${GITHUB_REF:11} # drop 'refs/head/' prefix
 readonly git_timestamp=$(TZ=UTC git show --quiet --date='format-local:%Y%m%d%H%M%S' --format="%cd")
 readonly slug=${version}-${git_timestamp}-${GITHUB_SHA:0:16}
 
-echo "Publishing riff http->streaming adapter"
+echo "Publishing streaming-http-adapter-linux-amd64-${slug}.tgz"
 gsutil cp -a public-read streaming-http-adapter-linux-amd64.tgz gs://projectriff/streaming-http-adapter/streaming-http-adapter-linux-amd64-${slug}.tgz
