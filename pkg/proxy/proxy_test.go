@@ -87,6 +87,28 @@ func Test_not_acceptable_media_type(t *testing.T) {
 	assert.Equal(t, errorMsg+"\n", responseRecorder.Body.String())
 }
 
+func Test_unsupported_request_method(t *testing.T) {
+	riffClient, _ := mockRiffClient()
+	p := &proxy{riffClient: riffClient}
+
+	request, _ := http.NewRequest("GET", "/", strings.NewReader(""))
+	responseRecorder := httptest.NewRecorder()
+	p.invokeGrpc(responseRecorder, request)
+
+	assert.Equal(t, http.StatusNotImplemented, responseRecorder.Code)
+}
+
+func Test_unsupported_request_path(t *testing.T) {
+	riffClient, _ := mockRiffClient()
+	p := &proxy{riffClient: riffClient}
+
+	request, _ := http.NewRequest("POST", "/nope/", strings.NewReader(""))
+	responseRecorder := httptest.NewRecorder()
+	p.invokeGrpc(responseRecorder, request)
+
+	assert.Equal(t, http.StatusNotImplemented, responseRecorder.Code)
+}
+
 func Test_unsupported_content_type(t *testing.T) {
 	contentType := "text/zglorbf"
 	errorMsg := fmt.Sprintf("Invoker: Unsupported Media Type: unsupported input #0's content-type %s", contentType)

@@ -73,7 +73,7 @@ func (p *proxy) Shutdown(ctx context.Context) error {
 }
 
 func (p *proxy) invokeGrpc(writer http.ResponseWriter, request *http.Request) {
-	if request.Method != http.MethodPost {
+	if request.Method != http.MethodPost || request.URL.Path != "/" {
 		writer.WriteHeader(http.StatusNotImplemented)
 		return
 	}
