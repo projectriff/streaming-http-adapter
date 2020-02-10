@@ -143,13 +143,13 @@ func (p *proxy) invokeGrpc(writer http.ResponseWriter, request *http.Request) {
 		writeError(writer, errors.New("expected EOF"))
 		return
 	}
-	if _, err = writer.Write(outputSignal.GetData().Payload); err != nil {
-		writeError(writer, err)
-		return
-	}
 	writer.Header().Set("content-type", outputSignal.GetData().ContentType)
 	for h, v := range outputSignal.GetData().Headers {
 		writer.Header().Set(h, v)
+	}
+	if _, err = writer.Write(outputSignal.GetData().Payload); err != nil {
+		writeError(writer, err)
+		return
 	}
 }
 
