@@ -1,4 +1,10 @@
 GO_SOURCES = $(shell find . -type f -name '*.go' ! -path '**/mocks/*')
+VERSION ?= $(shell cat VERSION)
+GITSHA = $(shell git rev-parse HEAD)
+GITDIRTY = $(shell git diff --quiet HEAD || echo "_dirty")
+LDFLAGS_VERSION = -X github.com/projectriff/streaming-http-adapter/pkg/build.Version=$(VERSION) \
+				  -X github.com/projectriff/streaming-http-adapter/pkg/build.Gitsha=$(GITSHA) \
+				  -X github.com/projectriff/streaming-http-adapter/pkg/build.Gitdirty=$(GITDIRTY)
 
 ifeq ($(OS),Windows_NT)
 	OUTPUT=streaming-http-adapter.exe
@@ -19,7 +25,7 @@ all: build test
 build: $(OUTPUT) ## Build the executable for current architecture (local dev)
 
 $(OUTPUT): $(GO_SOURCES)
-	go build -o $(OUTPUT) -gcflags="all=-N -l" main.go
+	go build -o $(OUTPUT) -gcflags="all=-N -l" -ldflags "$(LDFLAGS_VERSION)" main.go
 
 pkg/rpc/riff-rpc.pb.go: riff-rpc.proto
 	protoc -I . riff-rpc.proto --go_out=plugins=grpc:pkg/rpc
@@ -29,7 +35,7 @@ release: verify-mocks test streaming-http-adapter-linux-amd64.tgz ## Build the e
 
 streaming-http-adapter-linux-amd64.tgz: $(GO_SOURCES)
 	mkdir temp \
-	&& CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o temp/streaming-http-adapter main.go \
+	&& CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o temp/streaming-http-adapter -ldflags "$(LDFLAGS_VERSION)" main.go \
 	&& tar -czf streaming-http-adapter-linux-amd64.tgz -C temp/ streaming-http-adapter \
 	&& rm -fR temp
 

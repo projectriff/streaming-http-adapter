@@ -19,6 +19,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/projectriff/streaming-http-adapter/pkg/build"
 	"github.com/projectriff/streaming-http-adapter/pkg/proxy"
 	"log"
 	"os"
@@ -65,6 +66,8 @@ func main() {
 	done := make(chan struct{}, 2)
 
 	go func() {
+		fmt.Printf("Starting streaming-http-adapter %v %v%v\n\n", build.Version, build.Gitsha, build.Gitdirty)
+
 		if err := command.Run(); err != nil {
 			fmt.Printf("Child process exited with %v\n", err)
 		}
