@@ -63,19 +63,20 @@ func main() {
 	// It should not care about the PORT variable
 	command.Env = os.Environ()
 
-	done := make(chan struct{}, 2)
+	done := make(chan error, 2)
 
 	go func() {
 		fmt.Printf("Starting streaming-http-adapter %v %v%v\n\n", build.Version, build.Gitsha, build.Gitdirty)
 
-		if err := command.Run(); err != nil {
+		var err error
+		if err = command.Run(); err != nil {
 			fmt.Printf("Child process exited with %v\n", err)
 		}
-		done <- struct{}{}
-		if err := proxy.Shutdown(context.Background()); err != nil {
+		done <- err
+		if err = proxy.Shutdown(context.Background()); err != nil {
 			log.Fatalf("error shuting down proxy server %v", err)
 		}
-		done <- struct{}{}
+		done <- err
 	}()
 
 	stop := make(chan os.Signal, 1)
@@ -92,6 +93,9 @@ func main() {
 	}()
 
 	// Wait for both the child and the http server
-	<-done
-	<-done
+	err1 := <-done
+	err2 := <-done
+	if err1 != nil || err2 != nil {
+		os.Exit(1)
+	}
 }
