@@ -85,7 +85,7 @@ func (p *proxy) invokeGrpc(writer http.ResponseWriter, request *http.Request) {
 
 	accept := request.Header.Get("accept")
 	if accept == "" {
-		accept = "application/octet-stream"
+		accept = "*/*"
 	}
 	contentType := request.Header.Get("content-type")
 	if contentType == "" {
