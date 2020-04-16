@@ -3,17 +3,18 @@ package proxy
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
 	"github.com/projectriff/streaming-http-adapter/pkg/proxy/mocks"
 	"github.com/projectriff/streaming-http-adapter/pkg/rpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
 )
 
 func Test_invokeGrpc_input_startFrame(t *testing.T) {
@@ -42,6 +43,10 @@ func Test_invokeGrpc_input_dataFrame(t *testing.T) {
 
 	inputSignals := inputSignals(invokeClient.Calls)
 	dataFrame := inputSignals[1].GetData()
+	assert.Equal(t, dataFrame.Headers[XHttpMethodHeader], "POST")
+	assert.Equal(t, dataFrame.Headers[XHttpPathHeader], "/")
+	assert.Equal(t, dataFrame.Headers[XHttpQueryHeader], "")
+	assert.Equal(t, dataFrame.Headers[XHttpProtoHeader], "HTTP/1.1")
 	assert.Equal(t, "some body", string(dataFrame.Payload))
 	assert.Equal(t, "text/plain", dataFrame.ContentType)
 	assert.Contains(t, dataFrame.Headers, "X-Custom-Header")
@@ -49,13 +54,16 @@ func Test_invokeGrpc_input_dataFrame(t *testing.T) {
 }
 
 func Test_invokeGrpc_output(t *testing.T) {
-	riffClient, _ := mockRiffClientWithResponse("<data>some response</data>", "application/xml")
+	riffClient, _ := mockRiffClientWithResponse("<data>some response</data>", "application/xml", map[string]string{
+		XHttpStatusHeader: fmt.Sprintf("%d", http.StatusCreated),
+	})
 	p := &proxy{riffClient: riffClient}
 
 	request, _ := http.NewRequest("POST", "/", strings.NewReader(""))
 	responseRecorder := httptest.NewRecorder()
 	p.invokeGrpc(responseRecorder, request)
 
+	assert.Equal(t, http.StatusCreated, responseRecorder.Code)
 	assert.Equal(t, "<data>some response</data>", responseRecorder.Body.String())
 	assert.Equal(t, "application/xml", responseRecorder.Header().Get("Content-Type"))
 }
@@ -65,10 +73,12 @@ func Test_invokeGrpc_wiring(t *testing.T) {
 	p := &proxy{riffClient: riffClient}
 
 	request, _ := http.NewRequest("POST", "/", strings.NewReader("some body"))
-	p.invokeGrpc(httptest.NewRecorder(), request)
+	responseRecorder := httptest.NewRecorder()
+	p.invokeGrpc(responseRecorder, request)
 
 	riffClient.AssertExpectations(t)
 	invokeClient.AssertExpectations(t)
+	assert.Equal(t, http.StatusOK, responseRecorder.Code)
 }
 
 func Test_not_acceptable_media_type(t *testing.T) {
@@ -137,16 +147,16 @@ func inputSignals(calls []mock.Call) []*rpc.InputSignal {
 }
 
 func mockRiffClient() (*mocks.RiffClient, *mocks.Riff_InvokeClient) {
-	return mockRiffClientWithResponse("", "")
+	return mockRiffClientWithResponse("", "", map[string]string{})
 }
 
-func mockRiffClientWithResponse(outputBody string, contentType string) (*mocks.RiffClient, *mocks.Riff_InvokeClient) {
+func mockRiffClientWithResponse(outputBody string, contentType string, headers map[string]string) (*mocks.RiffClient, *mocks.Riff_InvokeClient) {
 	riffClient := &mocks.RiffClient{}
 	invokeClient := &mocks.Riff_InvokeClient{}
 	riffClient.On("Invoke", context.Background()).Return(invokeClient, nil)
 	invokeClient.On("Send", mock.Anything).Return(nil)
 	invokeClient.On("CloseSend").Return(nil)
-	invokeClient.On("Recv").Return(outputSignal(outputBody, contentType), nil).Once()
+	invokeClient.On("Recv").Return(outputSignal(outputBody, contentType, headers), nil).Once()
 	invokeClient.On("Recv").Return(nil, io.EOF)
 	return riffClient, invokeClient
 }
@@ -168,12 +178,13 @@ func isStartSignal(inputSignal *rpc.InputSignal) bool {
 	return inputSignal.GetStart() != nil
 }
 
-func outputSignal(outputBody string, contentType string) *rpc.OutputSignal {
+func outputSignal(outputBody string, contentType string, headers map[string]string) *rpc.OutputSignal {
 	return &rpc.OutputSignal{
 		Frame: &rpc.OutputSignal_Data{
 			Data: &rpc.OutputFrame{
 				Payload:     []byte(outputBody),
 				ContentType: contentType,
+				Headers:     headers,
 			},
 		},
 	}
