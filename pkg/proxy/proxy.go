@@ -19,15 +19,26 @@ package proxy
 import (
 	"context"
 	"errors"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/projectriff/streaming-http-adapter/pkg/rpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"io"
-	"io/ioutil"
-	"net/http"
-	"strings"
-	"time"
+)
+
+var (
+	XHttpMethodHeader = http.CanonicalHeaderKey("x-http-method")
+	XHttpPathHeader   = http.CanonicalHeaderKey("x-http-path")
+	XHttpQueryHeader  = http.CanonicalHeaderKey("x-http-query")
+	XHttpProtoHeader  = http.CanonicalHeaderKey("x-http-proto")
+	XHttpStatusHeader = http.CanonicalHeaderKey("x-http-status")
 )
 
 type proxy struct {
@@ -73,6 +84,7 @@ func (p *proxy) Shutdown(ctx context.Context) error {
 }
 
 func (p *proxy) invokeGrpc(writer http.ResponseWriter, request *http.Request) {
+	// TODO relax these restriction now that we expose more http semantics to functions
 	if request.Method != http.MethodPost || request.URL.Path != "/" {
 		writer.WriteHeader(http.StatusNotImplemented)
 		return
@@ -115,11 +127,15 @@ func (p *proxy) invokeGrpc(writer http.ResponseWriter, request *http.Request) {
 		ContentType: contentType,
 		ArgIndex:    0,
 		Payload:     bytes,
-		Headers:     make(map[string]string, len(request.Header)),
+		Headers:     make(map[string]string, len(request.Header)+4),
 	}
 	for h, v := range request.Header {
 		inputFrame.Headers[h] = v[0]
 	}
+	inputFrame.Headers[XHttpMethodHeader] = request.Method
+	inputFrame.Headers[XHttpPathHeader] = request.URL.Path
+	inputFrame.Headers[XHttpQueryHeader] = request.URL.RawQuery
+	inputFrame.Headers[XHttpProtoHeader] = request.Proto
 	dataSignal := rpc.InputSignal{
 		Frame: &rpc.InputSignal_Data{
 			Data: &inputFrame,
@@ -143,12 +159,20 @@ func (p *proxy) invokeGrpc(writer http.ResponseWriter, request *http.Request) {
 		writeError(writer, errors.New("expected EOF"))
 		return
 	}
+	if status, ok := outputSignal.GetData().Headers[XHttpStatusHeader]; ok {
+		code, err := strconv.Atoi(status)
+		if err != nil {
+			writeError(writer, fmt.Errorf("invalid status code %q", status))
+			return
+		}
+		writer.WriteHeader(code)
+	}
 	writer.Header().Set("content-type", outputSignal.GetData().ContentType)
 	for h, v := range outputSignal.GetData().Headers {
 		writer.Header().Set(h, v)
 	}
 	if _, err = writer.Write(outputSignal.GetData().Payload); err != nil {
-		writeError(writer, err)
+		fmt.Printf("unable to write proxy response: %s\n", err)
 		return
 	}
 }
