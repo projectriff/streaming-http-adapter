@@ -162,7 +162,8 @@ func (p *proxy) invokeGrpc(writer http.ResponseWriter, request *http.Request) {
 	if status, ok := outputSignal.GetData().Headers[XHttpStatusHeader]; ok {
 		code, err := strconv.Atoi(status)
 		if err != nil {
-			writeError(writer, fmt.Errorf("Invalid status code %q", status))
+			writeError(writer, fmt.Errorf("invalid status code %q", status))
+			return
 		}
 		writer.WriteHeader(code)
 	}
@@ -171,7 +172,7 @@ func (p *proxy) invokeGrpc(writer http.ResponseWriter, request *http.Request) {
 		writer.Header().Set(h, v)
 	}
 	if _, err = writer.Write(outputSignal.GetData().Payload); err != nil {
-		writeError(writer, err)
+		fmt.Printf("unable to write proxy response: %s\n", err)
 		return
 	}
 }
