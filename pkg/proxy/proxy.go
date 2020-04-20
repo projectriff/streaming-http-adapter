@@ -159,17 +159,17 @@ func (p *proxy) invokeGrpc(writer http.ResponseWriter, request *http.Request) {
 		writeError(writer, errors.New("expected EOF"))
 		return
 	}
-	if status, ok := outputSignal.GetData().Headers[XHttpStatusHeader]; ok {
+	writer.Header().Set("content-type", outputSignal.GetData().ContentType)
+	for h, v := range outputSignal.GetData().Headers {
+		writer.Header().Set(h, v)
+	}
+	if status := writer.Header().Get(XHttpStatusHeader); status != "" {
 		code, err := strconv.Atoi(status)
 		if err != nil {
 			writeError(writer, fmt.Errorf("invalid status code %q", status))
 			return
 		}
 		writer.WriteHeader(code)
-	}
-	writer.Header().Set("content-type", outputSignal.GetData().ContentType)
-	for h, v := range outputSignal.GetData().Headers {
-		writer.Header().Set(h, v)
 	}
 	if _, err = writer.Write(outputSignal.GetData().Payload); err != nil {
 		fmt.Printf("unable to write proxy response: %s\n", err)
