@@ -18,6 +18,7 @@ package proxy
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -89,16 +90,17 @@ func (p *proxy) invokeGrpc(writer http.ResponseWriter, request *http.Request) {
 		writer.WriteHeader(http.StatusNotImplemented)
 		return
 	}
-	client, err := p.riffClient.Invoke(context.Background())
-	if err != nil {
-		writeError(writer, err)
-		return
-	}
-
 	accept := request.Header.Get("accept")
 	if accept == "" {
 		accept = "*/*"
 	}
+
+	client, err := p.riffClient.Invoke(context.Background())
+	if err != nil {
+		writeError(writer, err, accept)
+		return
+	}
+
 	contentType := request.Header.Get("content-type")
 	if contentType == "" {
 		contentType = "application/octet-stream"
@@ -114,13 +116,13 @@ func (p *proxy) invokeGrpc(writer http.ResponseWriter, request *http.Request) {
 		},
 	}
 	if err := client.Send(&startSignal); err != nil {
-		writeError(writer, err)
+		writeError(writer, err, accept)
 		return
 	}
 
 	bytes, err := ioutil.ReadAll(request.Body)
 	if err != nil {
-		writeError(writer, err)
+		writeError(writer, err, accept)
 		return
 	}
 	inputFrame := rpc.InputFrame{
@@ -142,21 +144,21 @@ func (p *proxy) invokeGrpc(writer http.ResponseWriter, request *http.Request) {
 		},
 	}
 	if err := client.Send(&dataSignal); err != nil {
-		writeError(writer, err)
+		writeError(writer, err, accept)
 		return
 	}
 	if err := client.CloseSend(); err != nil {
-		writeError(writer, err)
+		writeError(writer, err, accept)
 		return
 	}
 
 	outputSignal, err := client.Recv()
 	if err != nil {
-		writeError(writer, err)
+		writeError(writer, err, accept)
 		return
 	}
 	if _, err := client.Recv(); err != io.EOF {
-		writeError(writer, errors.New("expected EOF"))
+		writeError(writer, errors.New("expected EOF"), accept)
 		return
 	}
 	writer.Header().Set("content-type", outputSignal.GetData().ContentType)
@@ -166,7 +168,7 @@ func (p *proxy) invokeGrpc(writer http.ResponseWriter, request *http.Request) {
 	if status := writer.Header().Get(XHttpStatusHeader); status != "" {
 		code, err := strconv.Atoi(status)
 		if err != nil {
-			writeError(writer, fmt.Errorf("invalid status code %q", status))
+			writeError(writer, fmt.Errorf("invalid status code %q", status), accept)
 			return
 		}
 		writer.WriteHeader(code)
@@ -177,16 +179,32 @@ func (p *proxy) invokeGrpc(writer http.ResponseWriter, request *http.Request) {
 	}
 }
 
-func writeError(writer http.ResponseWriter, err error) {
+type invocationError struct {
+	Error string `json:"error"`
+}
+
+func writeError(writer http.ResponseWriter, err error, accept string) {
+	writeJSON := accept == "application/json"
+	if writeJSON {
+		writer.Header().Set("content-type", accept)
+	} else {
+		writer.Header().Set("content-type", "text/plain")
+	}
+
+	var invErr invocationError
 	if grpcError, ok := status.FromError(err); ok {
 		writeHeaderFromGrpcError(grpcError, writer)
-		writer.Header().Set("content-type", "text/plain")
-		_, _ = writer.Write([]byte(grpcError.Message()))
-		_, _ = writer.Write([]byte("\n"))
+		invErr = invocationError{Error: grpcError.Message()}
 	} else {
 		writer.WriteHeader(http.StatusInternalServerError)
-		writer.Header().Set("content-type", "text/plain")
-		_, _ = writer.Write([]byte(err.Error()))
+		invErr = invocationError{Error: err.Error()}
+	}
+
+	if writeJSON {
+		bs, _ := json.Marshal(invErr)
+		_, _ = writer.Write(bs)
+	} else {
+		_, _ = writer.Write([]byte(invErr.Error))
 		_, _ = writer.Write([]byte("\n"))
 	}
 
