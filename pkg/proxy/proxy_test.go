@@ -169,14 +169,14 @@ func Test_error_ordered_accept_text(t *testing.T) {
 	assert.Equal(t, "Invoker: Unsupported Media Type: unsupported input #0's content-type text/zglorbf\n", responseRecorder.Body.String())
 }
 
-func Test_error_ordered_accept_json(t *testing.T) {
+func Test_error_weighted_accept_json(t *testing.T) {
 	contentType := "text/zglorbf"
 	errorMsg := fmt.Sprintf("Invoker: Unsupported Media Type: unsupported input #0's content-type %s", contentType)
 	riffClient, _ := mockRiffClientWithError(codes.InvalidArgument, errorMsg)
 	p := &proxy{riffClient: riffClient}
 	request, _ := http.NewRequest("POST", "/", strings.NewReader("some body"))
 	request.Header.Set("Content-Type", contentType)
-	request.Header.Set("Accept", "something/madeup, application/json; charset=utf-8, text/plain")
+	request.Header.Set("Accept", "something/madeup;q=0.5, application/json; charset=utf-8, text/plain")
 
 	responseRecorder := httptest.NewRecorder()
 	p.invokeGrpc(responseRecorder, request)

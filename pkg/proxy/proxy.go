@@ -28,6 +28,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/markusthoemmes/goautoneg"
 	"github.com/projectriff/streaming-http-adapter/pkg/rpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -184,9 +185,9 @@ type invocationError struct {
 }
 
 func writeError(writer http.ResponseWriter, err error, accept string) {
-	textPos := strings.Index(accept, "text/plain")
-	jsonPos := strings.Index(accept, "application/json")
-	preferJSON := jsonPos > -1 && (textPos == -1 || jsonPos < textPos)
+	accepts := goautoneg.ParseAccept(accept)
+	preferJSON := accepts[0].Type == "application" && accepts[0].SubType == "json"
+
 	if preferJSON {
 		writer.Header().Set("content-type", "application/json")
 	} else {
