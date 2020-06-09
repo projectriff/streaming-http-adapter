@@ -184,9 +184,11 @@ type invocationError struct {
 }
 
 func writeError(writer http.ResponseWriter, err error, accept string) {
-	writeJSON := accept == "application/json"
-	if writeJSON {
-		writer.Header().Set("content-type", accept)
+	textPos := strings.Index(accept, "text/plain")
+	jsonPos := strings.Index(accept, "application/json")
+	preferJSON := jsonPos > -1 && (textPos == -1 || jsonPos < textPos)
+	if preferJSON {
+		writer.Header().Set("content-type", "application/json")
 	} else {
 		writer.Header().Set("content-type", "text/plain")
 	}
@@ -200,7 +202,7 @@ func writeError(writer http.ResponseWriter, err error, accept string) {
 		invErr = invocationError{Error: err.Error()}
 	}
 
-	if writeJSON {
+	if preferJSON {
 		bs, _ := json.Marshal(invErr)
 		_, _ = writer.Write(bs)
 	} else {
