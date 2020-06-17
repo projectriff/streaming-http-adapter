@@ -24,7 +24,7 @@ jobs:
       run: .github/workflows/release.sh
       if: |
         github.event_name == 'push' && (
-          github.ref == 'refs/heads/master' || (
+          github.ref == 'refs/heads/main' || (
             startsWith(github.ref, 'refs/heads/v') && endsWith(github.ref, 'x')
           )
         )
