@@ -1,6 +1,6 @@
 module github.com/projectriff/streaming-http-adapter
 
-go 1.12
+go 1.14
 
 require (
 	github.com/golang/protobuf v1.4.2

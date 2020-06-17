@@ -5,6 +5,7 @@ GITDIRTY = $(shell git diff --quiet HEAD || echo "_dirty")
 LDFLAGS_VERSION = -X github.com/projectriff/streaming-http-adapter/pkg/build.Version=$(VERSION) \
 				  -X github.com/projectriff/streaming-http-adapter/pkg/build.Gitsha=$(GITSHA) \
 				  -X github.com/projectriff/streaming-http-adapter/pkg/build.Gitdirty=$(GITDIRTY)
+MOCKERY ?= go run -modfile hack/go.mod github.com/vektra/mockery/cmd/mockery
 
 ifeq ($(OS),Windows_NT)
 	OUTPUT=streaming-http-adapter.exe
@@ -55,27 +56,16 @@ pkg/proxy/mocks/Riff_InvokeClient.go: pkg/rpc/riff-rpc.pb.go
 	$(MOCKERY) -output ./pkg/proxy/mocks -dir ./pkg/rpc -name Riff_InvokeClient
 
 .PHONY: gen-mocks
-gen-mocks: mockery pkg/proxy/mocks/RiffClient.go pkg/proxy/mocks/Riff_InvokeClient.go
+gen-mocks: pkg/proxy/mocks/RiffClient.go pkg/proxy/mocks/Riff_InvokeClient.go
 
 .PHONY: clean-mocks
 clean-mocks: ## Delete mocks
 	rm -fR pkg/proxy/mocks
 
 .PHONY: verify-mocks
-verify-mocks: mockery ## Verify that mocks are up to date
-	$(MOCKERY) -print -dir ./pkg/rpc -name RiffClient | diff ./pkg/proxy/mocks/RiffClient.go  -
-	$(MOCKERY) -print -dir ./pkg/rpc -name Riff_InvokeClient | diff ./pkg/proxy/mocks/Riff_InvokeClient.go  -
-	
-# find or download mockery, download mockery if necessary
-.PHONY: mockery
-mockery:
-ifeq (, $(shell which mockery))
-	GO111MODULE=off go get -u  github.com/vektra/mockery/.../
-MOCKERY=$(GOBIN)/mockery
-else
-MOCKERY=$(shell which mockery)
-endif
-
+verify-mocks: ## Verify that mocks are up to date
+	$(MOCKERY) --print --dir ./pkg/rpc --name RiffClient | diff ./pkg/proxy/mocks/RiffClient.go  -
+	$(MOCKERY) --print --dir ./pkg/rpc --name Riff_InvokeClient | diff ./pkg/proxy/mocks/Riff_InvokeClient.go  -
 
 # Absolutely awesome: http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 .PHONY: help
