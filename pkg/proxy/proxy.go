@@ -195,7 +195,7 @@ func writeError(writer http.ResponseWriter, err error, accept string) {
 			writer.Header().Set("content-type", "text/plain")
 		}
 	} else {
-		writer.Header().Set("content-type", accept)
+		writer.Header().Set("content-type", "text/plain")
 	}
 
 	var invErr invocationError
