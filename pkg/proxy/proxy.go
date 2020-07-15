@@ -188,7 +188,7 @@ func writeError(writer http.ResponseWriter, err error, accept string) {
 	accepts := goautoneg.ParseAccept(accept)
 	var preferJSON bool
 	if len(accepts) != 0 {
-		preferJSON := accepts[0].Type == "application" && accepts[0].SubType == "json"
+		preferJSON = accepts[0].Type == "application" && accepts[0].SubType == "json"
 		if preferJSON {
 			writer.Header().Set("content-type", "application/json")
 		} else {

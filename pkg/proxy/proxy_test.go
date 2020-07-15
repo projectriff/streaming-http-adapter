@@ -149,7 +149,7 @@ func Test_unsupported_content_type_json(t *testing.T) {
 
 	assert.Equal(t, http.StatusUnsupportedMediaType, responseRecorder.Code)
 	assert.Equal(t, "application/json", responseRecorder.Header().Get("Content-Type"))
-	assert.Equal(t, "Invoker: Unsupported Media Type: unsupported input #0's content-type text/zglorbf\n", responseRecorder.Body.String())
+	assert.Equal(t, "{\"error\":\"Invoker: Unsupported Media Type: unsupported input #0's content-type text/zglorbf\"}", responseRecorder.Body.String())
 }
 
 func Test_error_ordered_accept_text(t *testing.T) {
@@ -183,7 +183,7 @@ func Test_error_weighted_accept_json(t *testing.T) {
 
 	assert.Equal(t, http.StatusUnsupportedMediaType, responseRecorder.Code)
 	assert.Equal(t, "application/json", responseRecorder.Header().Get("Content-Type"))
-	assert.Equal(t, "Invoker: Unsupported Media Type: unsupported input #0's content-type text/zglorbf\n", responseRecorder.Body.String())
+	assert.Equal(t, "{\"error\":\"Invoker: Unsupported Media Type: unsupported input #0's content-type text/zglorbf\"}", responseRecorder.Body.String())
 }
 
 func inputSignals(calls []mock.Call) []*rpc.InputSignal {
