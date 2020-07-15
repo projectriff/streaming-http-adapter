@@ -97,6 +97,22 @@ func Test_not_acceptable_media_type(t *testing.T) {
 	assert.Equal(t, errorMsg+"\n", responseRecorder.Body.String())
 }
 
+func Test_invalid_media_type(t *testing.T) {
+	accept := "zglorbf"
+	errorMsg := fmt.Sprintf("Invoker: Not Acceptable: unrecognized output #0's content-type %s", accept)
+	riffClient, _ := mockRiffClientWithError(codes.InvalidArgument, errorMsg)
+	p := &proxy{riffClient: riffClient}
+	request, _ := http.NewRequest("POST", "/", strings.NewReader("some body"))
+	request.Header.Set("Accept", accept)
+
+	responseRecorder := httptest.NewRecorder()
+	p.invokeGrpc(responseRecorder, request)
+
+	assert.Equal(t, http.StatusNotAcceptable, responseRecorder.Code)
+	assert.Equal(t, "text/plain", responseRecorder.Header().Get("Content-Type"))
+	assert.Equal(t, errorMsg+"\n", responseRecorder.Body.String())
+}
+
 func Test_unsupported_request_method(t *testing.T) {
 	riffClient, _ := mockRiffClient()
 	p := &proxy{riffClient: riffClient}
@@ -150,6 +166,39 @@ func Test_unsupported_content_type_json(t *testing.T) {
 	assert.Equal(t, http.StatusUnsupportedMediaType, responseRecorder.Code)
 	assert.Equal(t, "application/json", responseRecorder.Header().Get("Content-Type"))
 	assert.Equal(t, "{\"error\":\"Invoker: Unsupported Media Type: unsupported input #0's content-type text/zglorbf\"}", responseRecorder.Body.String())
+}
+
+func Test_invalid_content_type(t *testing.T) {
+	contentType := "zglorbf"
+	errorMsg := fmt.Sprintf("Invoker: Unsupported Media Type: unsupported input #0's content-type %s", contentType)
+	riffClient, _ := mockRiffClientWithError(codes.InvalidArgument, errorMsg)
+	p := &proxy{riffClient: riffClient}
+	request, _ := http.NewRequest("POST", "/", strings.NewReader("some body"))
+	request.Header.Set("Content-Type", contentType)
+
+	responseRecorder := httptest.NewRecorder()
+	p.invokeGrpc(responseRecorder, request)
+
+	assert.Equal(t, http.StatusUnsupportedMediaType, responseRecorder.Code)
+	assert.Equal(t, "text/plain", responseRecorder.Header().Get("Content-Type"))
+	assert.Equal(t, errorMsg+"\n", responseRecorder.Body.String())
+}
+
+func Test_invalid_content_type_json(t *testing.T) {
+	contentType := "zglorbf"
+	errorMsg := fmt.Sprintf("Invoker: Unsupported Media Type: unsupported input #0's content-type %s", contentType)
+	riffClient, _ := mockRiffClientWithError(codes.InvalidArgument, errorMsg)
+	p := &proxy{riffClient: riffClient}
+	request, _ := http.NewRequest("POST", "/", strings.NewReader("some body"))
+	request.Header.Set("Content-Type", contentType)
+	request.Header.Set("Accept", "application/json")
+
+	responseRecorder := httptest.NewRecorder()
+	p.invokeGrpc(responseRecorder, request)
+
+	assert.Equal(t, http.StatusUnsupportedMediaType, responseRecorder.Code)
+	assert.Equal(t, "application/json", responseRecorder.Header().Get("Content-Type"))
+	assert.Equal(t, "{\"error\":\"Invoker: Unsupported Media Type: unsupported input #0's content-type zglorbf\"}", responseRecorder.Body.String())
 }
 
 func Test_error_ordered_accept_text(t *testing.T) {
