@@ -126,6 +126,7 @@ func (p *proxy) invokeGrpc(writer http.ResponseWriter, request *http.Request) {
 		writeError(writer, err, accept)
 		return
 	}
+
 	inputFrame := rpc.InputFrame{
 		ContentType: contentType,
 		ArgIndex:    0,
@@ -186,7 +187,7 @@ type invocationError struct {
 
 func writeError(writer http.ResponseWriter, err error, accept string) {
 	accepts := goautoneg.ParseAccept(accept)
-	var preferJSON bool
+	preferJSON := false
 	if len(accepts) != 0 {
 		preferJSON = accepts[0].Type == "application" && accepts[0].SubType == "json"
 		if preferJSON {
@@ -224,6 +225,8 @@ func writeHeaderFromGrpcError(grpcError *status.Status, writer http.ResponseWrit
 		writer.WriteHeader(http.StatusUnsupportedMediaType)
 	} else if strings.HasPrefix(grpcError.Message(), "Invoker: Not Acceptable") {
 		writer.WriteHeader(http.StatusNotAcceptable)
+	} else if strings.HasPrefix(grpcError.Message(), "Invoker: Bad Request") {
+		writer.WriteHeader(http.StatusBadRequest)
 	} else {
 		writer.WriteHeader(http.StatusInternalServerError)
 	}
