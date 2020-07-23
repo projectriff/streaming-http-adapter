@@ -126,6 +126,7 @@ func (p *proxy) invokeGrpc(writer http.ResponseWriter, request *http.Request) {
 		writeError(writer, err, accept)
 		return
 	}
+
 	inputFrame := rpc.InputFrame{
 		ContentType: contentType,
 		ArgIndex:    0,
@@ -224,6 +225,8 @@ func writeHeaderFromGrpcError(grpcError *status.Status, writer http.ResponseWrit
 		writer.WriteHeader(http.StatusUnsupportedMediaType)
 	} else if strings.HasPrefix(grpcError.Message(), "Invoker: Not Acceptable") {
 		writer.WriteHeader(http.StatusNotAcceptable)
+	} else if strings.HasPrefix(grpcError.Message(), "Invoker: Bad Input Signal") {
+		writer.WriteHeader(http.StatusBadRequest)
 	} else {
 		writer.WriteHeader(http.StatusInternalServerError)
 	}

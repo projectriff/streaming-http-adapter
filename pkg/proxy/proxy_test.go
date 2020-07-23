@@ -81,6 +81,21 @@ func Test_invokeGrpc_wiring(t *testing.T) {
 	assert.Equal(t, http.StatusOK, responseRecorder.Code)
 }
 
+func Test_invalid_input(t *testing.T) {
+	errorMsg := fmt.Sprintf("Invoker: Bad Input Signal: SyntaxError: Unexpected token")
+	riffClient, _ := mockRiffClientWithError(codes.InvalidArgument, errorMsg)
+	p := &proxy{riffClient: riffClient}
+	request, _ := http.NewRequest("POST", "/", strings.NewReader("some body"))
+	request.Header.Set("Accept", "application/json")
+
+	responseRecorder := httptest.NewRecorder()
+	p.invokeGrpc(responseRecorder, request)
+
+	assert.Equal(t, http.StatusBadRequest, responseRecorder.Code)
+	assert.Equal(t, "application/json", responseRecorder.Header().Get("Content-Type"))
+	assert.Equal(t, "{\"error\":\""+errorMsg+"\"}", responseRecorder.Body.String())
+}
+
 func Test_not_acceptable_media_type(t *testing.T) {
 	accept := "text/zglorbf"
 	errorMsg := fmt.Sprintf("Invoker: Not Acceptable: unrecognized output #0's content-type %s", accept)
