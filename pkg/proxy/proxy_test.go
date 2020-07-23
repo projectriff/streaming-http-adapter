@@ -82,7 +82,7 @@ func Test_invokeGrpc_wiring(t *testing.T) {
 }
 
 func Test_invalid_input(t *testing.T) {
-	errorMsg := fmt.Sprintf("Invoker: Bad Request: SyntaxError: Unexpected token")
+	errorMsg := fmt.Sprintf("Invoker: Bad Input Signal: SyntaxError: Unexpected token")
 	riffClient, _ := mockRiffClientWithError(codes.InvalidArgument, errorMsg)
 	p := &proxy{riffClient: riffClient}
 	request, _ := http.NewRequest("POST", "/", strings.NewReader("some body"))

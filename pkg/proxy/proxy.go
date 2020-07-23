@@ -225,7 +225,7 @@ func writeHeaderFromGrpcError(grpcError *status.Status, writer http.ResponseWrit
 		writer.WriteHeader(http.StatusUnsupportedMediaType)
 	} else if strings.HasPrefix(grpcError.Message(), "Invoker: Not Acceptable") {
 		writer.WriteHeader(http.StatusNotAcceptable)
-	} else if strings.HasPrefix(grpcError.Message(), "Invoker: Bad Request") {
+	} else if strings.HasPrefix(grpcError.Message(), "Invoker: Bad Input Signal") {
 		writer.WriteHeader(http.StatusBadRequest)
 	} else {
 		writer.WriteHeader(http.StatusInternalServerError)
