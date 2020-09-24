@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Check out code
-      uses: actions/checkout@v2.3.2
+      uses: actions/checkout@v2.3.3
     - name: Set up Golang
       uses: actions/setup-go@v2.1.2
       with:
